@@ -54,6 +54,12 @@ type Maze struct {
 	NumExplored int
 	Debug       bool
 	SearchType  int
+	Animate     bool
+}
+
+func init() {
+	_ = os.Mkdir("./tmp", os.ModePerm)
+	emptyTmp()
 }
 
 func (g *Maze) Load(filename string) error {
@@ -143,8 +149,10 @@ func main() {
 	var m Maze
 	var maze, searchType string
 
-	flag.StringVar(&maze, "file", "mazes/maze.txt", "maze file")
+	flag.StringVar(&maze, "file", "mazes/maze-100-steps.txt", "maze file")
 	flag.StringVar(&searchType, "search", "dfs", "search type")
+	flag.BoolVar(&m.Debug, "debug", false, "write debugging")
+	flag.BoolVar(&m.Animate, "animate", false, "produce animate")
 	flag.Parse()
 
 	err := m.Load(maze)
@@ -159,6 +167,9 @@ func main() {
 	case "dfs":
 		m.SearchType = DFS
 		solveDFS(&m)
+	case "bfs":
+		m.SearchType = BFS
+		solveBFS(&m)
 	default:
 		fmt.Println("Invalid search type")
 		os.Exit(1)
@@ -171,11 +182,18 @@ func main() {
 
 		fmt.Println("Solution is:", len(m.Solution.Cells), "steps.")
 		fmt.Println("Time to solve:", time.Since(startTime))
+		m.OutputImage("image.png")
 	} else {
 		fmt.Println("No solution found.")
 	}
 
 	fmt.Println("Explored", len(m.Explored), "nodes.")
+
+	if m.Animate {
+		fmt.Println("Building animation...")
+		m.OutputAnimatedImage()
+		fmt.Println("Done!")
+	}
 }
 
 func (g *Maze) printMaze() {
@@ -209,6 +227,13 @@ func (g *Maze) inSolution(x Point) bool {
 
 func solveDFS(m *Maze) {
 	var s DepthFirstSearch
+	s.Game = m
+	fmt.Println("Goal is", s.Game.Goal)
+	s.Solve()
+}
+
+func solveBFS(m *Maze) {
+	var s BreadthFirstSearch
 	s.Game = m
 	fmt.Println("Goal is", s.Game.Goal)
 	s.Solve()
