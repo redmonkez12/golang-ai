@@ -14,7 +14,7 @@ import (
 const (
 	DFS = iota
 	BFS
-	GBPS
+	GBFS
 	ASTAR
 	DIJKSTRA
 )
@@ -30,10 +30,28 @@ type Wall struct {
 }
 
 type Node struct {
-	index  int
+	index               int
+	State               Point
+	Parent              *Node
+	Action              string
+	CostToGoal          int
+	EstimatedCostToGoal float64
+}
+
+type NodeNew struct {
 	State  Point
 	Parent *Node
 	Action string
+
+	G float64 // cost from start
+	H float64 // heuristic
+	F float64 // total cost
+
+	index int // heap index
+}
+
+func (n *Node) ManhattanDistance(goal Point) int {
+	return abs(n.State.Row-goal.Row) + abs(n.State.Col-goal.Col)
 }
 
 type Solution struct {
@@ -170,6 +188,15 @@ func main() {
 	case "bfs":
 		m.SearchType = BFS
 		solveBFS(&m)
+	case "dijkstra":
+		m.SearchType = DIJKSTRA
+		solveDijkstra(&m)
+	case "gbfs":
+		m.SearchType = GBFS
+		solveGBFS(&m)
+	case "astar":
+		m.SearchType = ASTAR
+		solveAstar(&m)
 	default:
 		fmt.Println("Invalid search type")
 		os.Exit(1)
@@ -234,6 +261,27 @@ func solveDFS(m *Maze) {
 
 func solveBFS(m *Maze) {
 	var s BreadthFirstSearch
+	s.Game = m
+	fmt.Println("Goal is", s.Game.Goal)
+	s.Solve()
+}
+
+func solveDijkstra(m *Maze) {
+	var s DijkstraSearch
+	s.Game = m
+	fmt.Println("Goal is", s.Game.Goal)
+	s.Solve()
+}
+
+func solveGBFS(m *Maze) {
+	var s GreedyBestFirstSearch
+	s.Game = m
+	fmt.Println("Goal is", s.Game.Goal)
+	s.Solve()
+}
+
+func solveAstar(m *Maze) {
+	var s AStarSearch
 	s.Game = m
 	fmt.Println("Goal is", s.Game.Goal)
 	s.Solve()

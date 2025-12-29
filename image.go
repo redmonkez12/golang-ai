@@ -101,11 +101,57 @@ func (g *Maze) drawSquare(col Wall, p Point, img *image.RGBA, c color.Color, siz
 	}, image.Point{}, draw.Src)
 
 	if !col.wall {
+		switch g.SearchType {
+		case DIJKSTRA, GBFS:
+			g.printManhattanCost(p, color.Black, patch)
+		case ASTAR:
+			g.printTotalCost(p, color.Black, patch)
+		default:
+			// Do nothing.
+		}
 		// Print the x y coordinates of this cell
 		g.printLocation(p, color.Black, patch)
 	}
 
 	draw.Draw(img, image.Rect(x, y, x+size, y+size), patch, image.Point{}, draw.Src)
+}
+
+func (g *Maze) printTotalCost(p Point, c color.Color, patch *image.RGBA) {
+	point := fixed.Point26_6{X: fixed.I(6), Y: fixed.I(17)}
+	d := &font.Drawer{
+		Dst:  patch,
+		Src:  image.NewUniform(c),
+		Face: basicfont.Face7x13,
+		Dot:  point,
+	}
+	n := Node{
+		State: p,
+	}
+
+	fromStart := n.ManhattanDistance(g.Start)
+	toGoal := euclideanDist(p, g.Goal)
+
+	d.DrawString(fmt.Sprintf("%.2f", float64(fromStart)+toGoal))
+}
+
+func (g *Maze) printManhattanCost(p Point, c color.Color, patch *image.RGBA) {
+	point := fixed.Point26_6{X: fixed.I(6), Y: fixed.I(17)}
+	d := &font.Drawer{
+		Dst:  patch,
+		Src:  image.NewUniform(c),
+		Face: basicfont.Face7x13,
+		Dot:  point,
+	}
+	n := Node{
+		State: p,
+	}
+	switch g.SearchType {
+	case DIJKSTRA:
+		d.DrawString(fmt.Sprintf("%d", n.ManhattanDistance(g.Start)))
+	case GBFS:
+		d.DrawString(fmt.Sprintf("%d", n.ManhattanDistance(g.Goal)))
+	default:
+	}
 }
 
 // printLocation
@@ -138,8 +184,8 @@ func (g *Maze) OutputAnimatedImage() {
 	a := apng.APNG{
 		Frames: make([]apng.Frame, len(images)),
 	}
-
 	out, _ := os.Create(output)
+	defer out.Close()
 
 	for i, s := range images {
 		in, err := os.Open(s)
@@ -147,7 +193,6 @@ func (g *Maze) OutputAnimatedImage() {
 			log.Println(err)
 			os.Exit(1)
 		}
-
 		defer in.Close()
 
 		m, err := png.Decode(in)
